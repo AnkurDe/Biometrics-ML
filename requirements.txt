@@ -1,0 +1,13 @@
+numpy
+scipy
+pandas
+pandas-stubs
+openpyxl
+seaborn
+matplotlib
+notebook
+scikit-learn
+pillow
+--extra-index-url https://download.pytorch.org/whl/cu130
+torch
+torchvision
