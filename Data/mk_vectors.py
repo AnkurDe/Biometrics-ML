@@ -5,7 +5,13 @@ import torchvision.transforms as transforms
 from PIL import Image
 from pathlib import Path
 import pandas as pd
+import numpy as np
+import cv2
 
+from preproc import preproc_image   # your OpenCV pipeline
+
+
+# ---------------- Model ----------------
 
 alexnet = models.alexnet(pretrained=True)
 
@@ -22,6 +28,8 @@ alexnet.classifier = nn.Sequential(
 alexnet.eval()
 
 
+# ---------------- Torch preprocessing ----------------
+
 preprocess = transforms.Compose([
     transforms.Resize(256),
     transforms.CenterCrop(224),
@@ -32,16 +40,33 @@ preprocess = transforms.Compose([
     ),
 ])
 
+
+# ---------------- Helpers ----------------
+
+def pil_to_cv(img):
+    return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+
+
+def cv_to_pil(img):
+    if len(img.shape) == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+    else:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(img)
+
+
 def img2vec(img):
     tensor = preprocess(img).unsqueeze(0)
     with torch.no_grad():
         vec = alexnet(tensor)
-    return vec.squeeze(0).cpu().numpy()  # shape: (10,)
+    return vec.squeeze(0).cpu().numpy()
 
 
-if __name__ == '__main__':
+# ---------------- Main ----------------
+
+if __name__ == "__main__":
+
     PATH = Path(".")
-
     rows = []
 
     for folder in PATH.iterdir():
@@ -55,8 +80,20 @@ if __name__ == '__main__':
                 continue
 
             try:
-                img = Image.open(file).convert("RGB")
-                vec = img2vec(img)
+                # Load PIL
+                pil_img = Image.open(file).convert("RGB")
+
+                # PIL → OpenCV
+                cv_img = pil_to_cv(pil_img)
+
+                # Your preprocessing pipeline
+                cv_img = preproc_image(cv_img)
+
+                # OpenCV → PIL
+                pil_img = cv_to_pil(cv_img)
+
+                # Feature extraction
+                vec = img2vec(pil_img)
 
                 row = {"name": label}
                 for i, v in enumerate(vec):
@@ -67,7 +104,7 @@ if __name__ == '__main__':
             except Exception as e:
                 print(f"Skipping {file}: {e}")
 
-    # ------------------ Export CSV ------------------
+    # ---------------- Export CSV ----------------
 
     df = pd.DataFrame(rows)
     df.to_csv("values.csv", index=False)
