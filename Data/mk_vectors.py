@@ -7,13 +7,14 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import cv2
+from torchvision.models import AlexNet_Weights
 
 from preproc import preproc_image   # your OpenCV pipeline
 
 
 # ---------------- Model ----------------
 
-alexnet = models.alexnet(pretrained=True)
+alexnet = models.alexnet(weights=AlexNet_Weights.DEFAULT)
 
 alexnet.classifier = nn.Sequential(
     nn.Dropout(),
