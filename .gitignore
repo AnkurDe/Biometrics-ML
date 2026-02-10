@@ -1,4 +1,4 @@
 .venvLinux
 .venv
-venv
 __pycache__/
+venv 
