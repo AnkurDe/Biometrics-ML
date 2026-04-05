@@ -7,12 +7,8 @@ from torchvision import transforms
 from PIL import Image
 import pandas as pd
 import numpy as np
-import cv2
 from torchvision.models import AlexNet_Weights
 from tqdm import tqdm
-
-from preproc import preproc_image
-
 
 # ---------------- Device ----------------
 
@@ -21,7 +17,6 @@ print(f"Running on: {device}")
 
 if device.type == "cuda":
     print("GPU:", torch.cuda.get_device_name(0))
-
 
 # ---------------- Model ----------------
 
@@ -40,7 +35,6 @@ alexnet.classifier = nn.Sequential(
 alexnet = alexnet.to(device)
 alexnet.eval()
 
-
 # ---------------- Torch preprocessing ----------------
 
 preprocess = transforms.Compose([
@@ -53,48 +47,92 @@ preprocess = transforms.Compose([
     ),
 ])
 
+# ---------------- Hook Storage ----------------
 
-# ---------------- Helpers ----------------
-
-def pil_to_cv(img):
-    return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+layer_outputs = {}
 
 
-def cv_to_pil(img):
-    if len(img.shape) == 2:
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    else:
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    return Image.fromarray(img)
+def get_hook(name):
+    def hook(module, input, output):
+        layer_outputs[name] = output.detach()
+
+    return hook
 
 
-def img2vec(img):
+# Register hooks for ALL layers
+for name, layer in alexnet.features._modules.items():
+    layer.register_forward_hook(get_hook(f"features_{name}"))
+
+alexnet.avgpool.register_forward_hook(get_hook("avgpool"))
+
+for name, layer in alexnet.classifier._modules.items():
+    layer.register_forward_hook(get_hook(f"classifier_{name}"))
+
+
+# ---------------- Feature Extraction ----------------
+
+def img2vec_all(img):
+    global layer_outputs
+    layer_outputs = {}
+
     tensor = preprocess(img).unsqueeze(0).to(device)
-    with torch.no_grad():
-        vec = alexnet(tensor)
-    return vec.squeeze(0).cpu().numpy()
 
+    with torch.no_grad():
+        _ = alexnet(tensor)
+
+    result = {}
+
+    for layer_name, output in layer_outputs.items():
+
+        # If Conv layer output → apply global average pooling
+        if len(output.shape) == 4:
+            flat = output.mean(dim=[2, 3]).view(-1).cpu().numpy()
+        else:
+            flat = output.view(-1).cpu().numpy()
+
+        for i, v in enumerate(flat):
+            result[f"{layer_name}_v{i + 1}"] = float(v)
+
+    return result
+
+
+# ---------------- GPU Stats ----------------
 
 def gpu_stats():
     if device.type != "cuda":
         return ""
 
-    allocated = torch.cuda.memory_allocated() / 1024**2
-    reserved = torch.cuda.memory_reserved() / 1024**2
+    allocated = torch.cuda.memory_allocated() / 1024 ** 2
+    reserved = torch.cuda.memory_reserved() / 1024 ** 2
 
     return f"VRAM {allocated:.0f}/{reserved:.0f} MB"
 
 
-# ---------------- Main ----------------
+import os
+from pathlib import Path
+from tqdm import tqdm
+from PIL import Image
+import pandas as pd
+import torch
 
-if __name__ == "__main__":
+# ---------------- CONFIG ----------------
+BATCH_SIZE = 1000
+OUTPUT_FILE = Path(__file__).resolve().parent.parent / "values_all_layers.csv"
+DATA_PATH = Path("../Processed_Data")
 
-    PATH = Path("../Data")
-    rows = []
 
-    # Collect all files first (for accurate progress bar)
+# ---------------- MAIN ----------------
+
+def main():
+    print(OUTPUT_FILE)
+    input("")
+
+    batch = []
+    header_written = False
+
+    # Collect all image files
     all_files = [
-        f for d in PATH.iterdir() if d.is_dir()
+        f for d in DATA_PATH.iterdir() if d.is_dir()
         for f in d.iterdir() if f.is_file()
     ]
 
@@ -105,30 +143,52 @@ if __name__ == "__main__":
         label = file.parent.name
 
         try:
-            # pil_img = cv2.imread(str(file))
-            pil_img = Image.open(file).convert("RGB")
+            # Safe image handling
+            with Image.open(file) as img:
+                img = img.convert("RGB")
 
-            cv_img = pil_to_cv(pil_img)
-            cv_img = preproc_image(cv_img)
-            pil_img = cv_to_pil(cv_img)
+                # Feature extraction (your function)
+                features = img2vec_all(img)
 
-            vec = img2vec(pil_img)
-
+            # Prepare row
             row = {"name": label}
-            for i, v in enumerate(vec):
-                row[f"v{i+1}"] = float(v)
+            row.update(features)
 
-            rows.append(row)
+            batch.append(row)
 
+            # Write batch when full
+            if len(batch) >= BATCH_SIZE:
+                write_batch(batch, header_written)
+                header_written = True
+                batch.clear()
+
+            # Optional GPU stats
             if device.type == "cuda":
                 progress.set_postfix_str(gpu_stats())
+                torch.cuda.empty_cache()
 
         except Exception as e:
             print(f"Skipping {file}: {e}")
 
-    # ---------------- Export CSV ----------------
+    # Write remaining data
+    if batch:
+        write_batch(batch, header_written)
 
-    df = pd.DataFrame(rows)
-    df.to_csv("values.csv", index=False)
+    print(f"{OUTPUT_FILE} written successfully")
 
-    print("values.csv written successfully")
+
+# ---------------- HELPER ----------------
+
+def write_batch(batch, header_written):
+    df_batch = pd.DataFrame(batch)
+
+    if not header_written:
+        df_batch.to_csv(OUTPUT_FILE, mode='w', index=False)
+    else:
+        df_batch.to_csv(OUTPUT_FILE, mode='a', header=False, index=False)
+
+
+# ---------------- ENTRY ----------------
+
+if __name__ == "__main__":
+    main()

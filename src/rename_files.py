@@ -1,4 +1,4 @@
-"""This tool is used to rename files in the files in the data folder"""
+"""This tool is used to rename files in the files in the data folder. In the format of 1, 2, 3..."""
 from pathlib import Path
 import re
 

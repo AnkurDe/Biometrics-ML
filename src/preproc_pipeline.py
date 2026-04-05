@@ -1,4 +1,4 @@
-"""This file is used to do preprocessing steps for the images"""
+"""This has the image preprocessing pipeline"""
 import sys
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
@@ -20,7 +20,18 @@ def distortion_correction(img):
 
 def normalise_contrast(img):
     """Normalize contrast"""
-    return cv2.normalize(img, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+    # _, mask = cv2.threshold(img, 120, 255, cv2.THRESH_BINARY)
+
+    mask = cv2.adaptiveThreshold(
+        img,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,  # better for text (white background → black text)
+        15,  # block size (tune this: 11–25)
+        8  # constant (tune: 2–10)
+    )
+
+    return mask
 
 
 def noise_reduction(img):
@@ -56,21 +67,28 @@ def compress_to_min_dim(img, target_min=1200):
 
     return resized
 
+
 # Iteration 2
 # This divides image into parts based on how the image was taken
 def segment(img):
     """Segments image into multiple segments"""
 
-
     img = compress_to_min_dim(img, target_min=1200)
 
     # Step 1: Binarization (robust for varying lighting)
-    _, thresh = cv2.threshold(
-        img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
-    )
+    # thresh = cv2.adaptiveThreshold(
+    #     img,
+    #     255,
+    #     cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    #     cv2.THRESH_BINARY_INV,  # better for text (white background → black text)
+    #     15,  # block size (tune this: 11–25)
+    #     8  # constant (tune: 2–10)
+    # )
+
+    _, thresh = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
 
     # Step 2: Find connected components (letters/parts)
-    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(thresh, connectivity=8)
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(img, connectivity=8)
 
     heights = []
 
@@ -88,8 +106,8 @@ def segment(img):
     median_height = int(np.median(heights))
 
     # Step 4: Define dynamic segment size
-    seg_h = int(median_height * 5)   # covers ~1–2 lines
-    seg_w = int(median_height * 10)   # covers word groups
+    seg_h = int(median_height * 5)  # covers ~1–2 lines
+    seg_w = int(median_height * 10)  # covers word groups
 
     h, w = img.shape
 
@@ -101,7 +119,7 @@ def segment(img):
             patch = img[y:y + seg_h, x:x + seg_w]
 
             # Skip mostly empty patches
-            if np.mean(patch) < 250:
+            if np.mean(patch) > 10:
                 segm.append((x, y, patch))
 
     return segm
@@ -118,14 +136,15 @@ def preproc_image(img):
     """Image processing pipeline"""
     img = grey_scale(img)
     img = distortion_correction(img)
-    img = normalise_contrast(img)
     img = noise_reduction(img)
+    img = normalise_contrast(img)
     img = deskew(img)
 
     segm = segment(img)
     return segm
 
 
+# For visualization and debugging
 if __name__ == '__main__':
     Tk().withdraw()
 
