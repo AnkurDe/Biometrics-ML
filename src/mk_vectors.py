@@ -6,9 +6,7 @@ import torchvision.models as models
 from torchvision import transforms
 from PIL import Image
 import pandas as pd
-import numpy as np
 from torchvision.models import AlexNet_Weights
-from tqdm import tqdm
 
 # ---------------- Device ----------------
 
@@ -108,12 +106,6 @@ def gpu_stats():
     return f"VRAM {allocated:.0f}/{reserved:.0f} MB"
 
 
-import os
-from pathlib import Path
-from tqdm import tqdm
-from PIL import Image
-import pandas as pd
-import torch
 
 # ---------------- CONFIG ----------------
 BATCH_SIZE = 1000
