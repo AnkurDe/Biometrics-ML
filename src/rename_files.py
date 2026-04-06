@@ -1,3 +1,4 @@
+"""This tool is used to rename files in the files in the data folder. In the format of 1, 2, 3..."""
 from pathlib import Path
 import re
 
@@ -14,4 +15,3 @@ for folder in FOLDER.iterdir():
                 new_name = file.with_name(str(counter) + "." + ext.group(1))
                 file.rename(new_name)
                 counter += 1
-
