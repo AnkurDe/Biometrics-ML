@@ -4,7 +4,7 @@ pandas
 pandas-stubs
 openpyxl
 seaborn
-matplotlib
+matplotlib==3.10.8
 notebook
 scikit-learn
 pillow
@@ -13,3 +13,4 @@ torch
 torchvision
 
 opencv-python
+tqdm
