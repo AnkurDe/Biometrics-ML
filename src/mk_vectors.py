@@ -1,11 +1,13 @@
+"""Used to create the vectors along with the name label which will be used for further training"""
 from pathlib import Path
 
+from PIL import Image
+import pandas as pd
+import tqdm
 import torch
 from torch import nn
 import torchvision.models as models
 from torchvision import transforms
-from PIL import Image
-import pandas as pd
 from torchvision.models import AlexNet_Weights
 
 # ---------------- Device ----------------

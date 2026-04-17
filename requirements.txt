@@ -13,4 +13,7 @@ torch
 torchvision
 
 opencv-python
+opencv-stubs
 tqdm
+
+cuml

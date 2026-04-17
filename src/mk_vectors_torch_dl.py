@@ -1,8 +1,9 @@
+"""Implementation of mk_vectors.py but using torch methods"""
 from pathlib import Path
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
-import torchvision.models as models
+from torchvision import models
 from torchvision import transforms
 from torchvision.models import AlexNet_Weights
 from PIL import Image

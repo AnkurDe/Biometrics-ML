@@ -14,8 +14,20 @@ def grey_scale(img):
 
 # Iteration 3
 def distortion_correction(img):
-    """Placeholder to remove artifacts like lines present in notebooks"""
-    return img
+    """Remove artifacts like lines present in notebooks without affecting handwriting"""
+    # Create horizontal kernel to detect horizontal lines
+    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 1))
+
+    # Use morphological opening to detect horizontal lines
+    lines = cv2.morphologyEx(img, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
+
+    # Create mask for the lines
+    _, mask = cv2.threshold(lines, 0, 255, cv2.THRESH_BINARY)
+
+    # Inpaint the lines using surrounding pixels
+    repaired = cv2.inpaint(img, mask, 3, cv2.INPAINT_TELEA)
+
+    return repaired
 
 
 def normalise_contrast(img):
@@ -135,7 +147,7 @@ def resize_for_screen(img, max_width=800, max_height=800):
 def preproc_image(img):
     """Image processing pipeline"""
     img = grey_scale(img)
-    img = distortion_correction(img)
+    # img = distortion_correction(img)
     img = noise_reduction(img)
     img = normalise_contrast(img)
     img = deskew(img)
