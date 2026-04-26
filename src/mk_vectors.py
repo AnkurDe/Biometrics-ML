@@ -72,6 +72,7 @@ for name, layer in alexnet.classifier._modules.items():
 # ---------------- Feature Extraction ----------------
 
 def img2vec_all(img):
+    """This does feature extraction"""
     global layer_outputs
     layer_outputs = {}
 
@@ -99,6 +100,7 @@ def img2vec_all(img):
 # ---------------- GPU Stats ----------------
 
 def gpu_stats():
+    """Helper function used for showing GPU statistics"""
     if device.type != "cuda":
         return ""
 
@@ -118,6 +120,7 @@ DATA_PATH = Path("../Processed_Data")
 # ---------------- MAIN ----------------
 
 def main():
+    """This the entry point of the code"""
     print(OUTPUT_FILE)
     input("")
 
@@ -130,7 +133,7 @@ def main():
         for f in d.iterdir() if f.is_file()
     ]
 
-    progress = tqdm(all_files, desc="Extracting", unit="img")
+    progress = tqdm.tqdm(all_files, desc="Extracting", unit="img")
 
     for file in progress:
 
