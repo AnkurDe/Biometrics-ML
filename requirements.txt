@@ -13,4 +13,22 @@ torch
 torchvision
 
 opencv-python
+opencv-stubs
 tqdm
+
+cudf-cu13==26.4.*
+dask-cudf-cu13==26.4.*
+cuml-cu13==26.4.*
+cugraph-cu13==26.4.*
+nx-cugraph-cu13==26.4.*
+cuxfilter-cu13==26.4.*
+cucim-cu13==26.4.*
+pylibraft-cu13==26.4.*
+raft-dask-cu13==26.4.*
+cuvs-cu13==26.4.*
+nvforest-cu13==26.4.*
+nx-cugraph-cu13==26.4.*
+
+lightgbm
+catboost
+xgboost

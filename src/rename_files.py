@@ -2,7 +2,7 @@
 from pathlib import Path
 import re
 
-FOLDER = Path("Data")
+FOLDER = Path(__file__).parent.parent / "Data"
 reg = re.compile(r'\.([^.]+)$')
 
 for folder in FOLDER.iterdir():

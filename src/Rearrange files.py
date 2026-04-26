@@ -1,3 +1,8 @@
+"""
+I had received files from Dr. Peeta, they were in a specific format i.e. by their roll number.
+This script is to put them in proper folder structures.
+"""
+
 import os
 import shutil
 

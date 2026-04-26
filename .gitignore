@@ -1,4 +1,7 @@
 .venvLinux
 .venv
 __pycache__/
-venv 
+venv
+/TabulatedData/
+/Data/
+/Processed_Data/

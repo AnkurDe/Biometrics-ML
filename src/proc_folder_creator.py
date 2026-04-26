@@ -14,8 +14,8 @@ from preproc_pipeline import preproc_image
 
 
 # INPUT / OUTPUT PATHS
-input_root = Path("../Data")
-output_root = Path("../Processed_Data")
+input_root = Path(__file__).parent.parent / "Data"
+output_root = Path(__file__).parent.parent / "Processed_Data"
 
 
 def is_image_file(file_path):
