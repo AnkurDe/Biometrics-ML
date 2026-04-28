@@ -87,16 +87,6 @@ def segment(img):
 
     img = compress_to_min_dim(img, target_min=1200)
 
-    # Step 1: Binarization (robust for varying lighting)
-    # thresh = cv2.adaptiveThreshold(
-    #     img,
-    #     255,
-    #     cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    #     cv2.THRESH_BINARY_INV,  # better for text (white background → black text)
-    #     15,  # block size (tune this: 11–25)
-    #     8  # constant (tune: 2–10)
-    # )
-
     _, thresh = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
 
     # Step 2: Find connected components (letters/parts)
