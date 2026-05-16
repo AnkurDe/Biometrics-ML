@@ -32,3 +32,5 @@ nx-cugraph-cu13==26.4.*
 lightgbm
 catboost
 xgboost
+lime
+shap

@@ -36,11 +36,6 @@ def saving(input_file_name:str, bit: int):
     )
 
 
-def main():
-    """The main function."""
+if __name__ == "__main__":
     saving(input_file_name="values_v6", bit=16)
     saving(input_file_name="values_v6", bit=32)
-    
-
-if __name__ == "__main__":
-    main()
