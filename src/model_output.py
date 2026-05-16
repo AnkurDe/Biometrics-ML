@@ -20,7 +20,7 @@ _SRC_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_SRC_DIR))
 
 from preproc_pipeline import preproc_image
-from mk_vectors_v6 import load_model, extract_features, preprocess, FEATURE_DIM
+from mk_vectors import load_model, extract_features, preprocess, FEATURE_DIM
 
 BASE_DIR = _SRC_DIR.parent
 MODELS_DIR = BASE_DIR / "Trained_Models"
