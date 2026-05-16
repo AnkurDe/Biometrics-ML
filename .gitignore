@@ -5,3 +5,6 @@ venv
 /TabulatedData/
 /Data/
 /Processed_Data/
+/Utham/
+catboost_info/
+/Trained_Models/
