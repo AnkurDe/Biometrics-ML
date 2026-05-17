@@ -39,6 +39,7 @@ Pipeline:
 5. Take the majority vote of per-segment predictions and return the final decision with confidence: $$\text{confidence} = \frac{\text{number of majority votes}}{\text{total number of votes}} \times 100$$
 
 ---
+
 # Image Preprocessing Pipeline
 ## 🏞️ Overall Pipeline Flow
 The pipeline follows a sequential structure, transforming the raw image through several stages:
@@ -127,7 +128,7 @@ Low (Pipeline Context). It is important only for debugging or visualization, hav
 
 ---
 
-# Understanding Image Embedding and Feature Vectors
+# Image Embedding and Feature Vectors
 
 Image embedding is a fundamental concept in modern computer vision and machine learning, enabling computers to "understand" the content of an image in a 
 numerical format that can be processed by algorithms.
