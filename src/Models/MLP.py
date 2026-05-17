@@ -15,7 +15,7 @@ from torch.utils.data import TensorDataset, DataLoader
 # -----------------------------
 # Load Data
 # -----------------------------
-path = Path.cwd().parent.parent / "TabulatedData" / "values_all_layers_16bit.parquet"
+path = Path.cwd().parent.parent / "TabulatedData" / "values_v6_16bit.parquet"
 
 dataset = pd.read_parquet(path)
 
