@@ -11,18 +11,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-from sklearn.model_selection import (
-    train_test_split,
-    GridSearchCV,
-    StratifiedKFold,
-    learning_curve
-)
-
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report
-)
-
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
@@ -30,6 +19,16 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
+
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix
+)
+import numpy as np
 
 
 # Suppress only known harmless warnings
@@ -243,9 +242,35 @@ def build_pipeline(classifier):
     """This has the pipeline for the entire procedure i.e. scaling, PCA and classification model"""
     return Pipeline([
         ('scaler', StandardScaler()),
-        ('pca', PCA(n_components=0.85)),  # Reduced from 0.90 to 0.85 for less aggressive dimensionality reduction
+        ('pca', PCA(n_components=0.85)),
         ('classifier', clone(classifier))
     ])
+
+
+def calculate_biometric_metrics(y_true, y_pred):
+    """
+    Calculates biometric evaluation metrics.
+
+    Returns:
+        dict: Dictionary containing FAR, FRR, and EER
+    """
+
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+
+    # False Acceptance Rate (FAR)
+    far = fp / (fp + tn) if (fp + tn) > 0 else 0
+
+    # False Rejection Rate (FRR)
+    frr = fn / (fn + tp) if (fn + tp) > 0 else 0
+
+    # Equal Error Rate (Approximation)
+    eer = (far + frr) / 2
+
+    return {
+        "FAR": far,
+        "FRR": frr,
+        "EER": eer
+    }
 
 
 def train_and_evaluate_models(
@@ -255,7 +280,17 @@ def train_and_evaluate_models(
     y_test,
     label
 ):
-    """Does training and evaluation of models"""
+    """
+    Trains and evaluates multiple models with:
+    - Accuracy
+    - Precision
+    - Recall
+    - F1 Score
+    - FAR
+    - FRR
+    - EER
+    """
+
     results = {}
 
     models = get_models()
@@ -285,37 +320,132 @@ def train_and_evaluate_models(
                 verbose=1
             )
 
+            # Train model
             grid_search.fit(X_train, y_train)
 
+            # Best model
             best_model = grid_search.best_estimator_
 
+            # Predictions
             y_pred_train = best_model.predict(X_train)
             y_pred_test = best_model.predict(X_test)
 
+            # -----------------------------
+            # TRAIN METRICS
+            # -----------------------------
             train_acc = accuracy_score(y_train, y_pred_train)
+
+            train_precision = precision_score(
+                y_train,
+                y_pred_train,
+                zero_division=0
+            )
+
+            train_recall = recall_score(
+                y_train,
+                y_pred_train,
+                zero_division=0
+            )
+
+            train_f1 = f1_score(
+                y_train,
+                y_pred_train,
+                zero_division=0
+            )
+
+            train_bio_metrics = calculate_biometric_metrics(
+                y_train,
+                y_pred_train
+            )
+
+            # -----------------------------
+            # TEST METRICS
+            # -----------------------------
             test_acc = accuracy_score(y_test, y_pred_test)
 
+            test_precision = precision_score(
+                y_test,
+                y_pred_test,
+                zero_division=0
+            )
+
+            test_recall = recall_score(
+                y_test,
+                y_pred_test,
+                zero_division=0
+            )
+
+            test_f1 = f1_score(
+                y_test,
+                y_pred_test,
+                zero_division=0
+            )
+
+            test_bio_metrics = calculate_biometric_metrics(
+                y_test,
+                y_pred_test
+            )
+
+            # Store results
             results[name] = {
+
+                # Train Metrics
                 'train_accuracy': train_acc,
+                'train_precision': train_precision,
+                'train_recall': train_recall,
+                'train_f1': train_f1,
+                'train_far': train_bio_metrics['FAR'],
+                'train_frr': train_bio_metrics['FRR'],
+                'train_eer': train_bio_metrics['EER'],
+
+                # Test Metrics
                 'test_accuracy': test_acc,
+                'test_precision': test_precision,
+                'test_recall': test_recall,
+                'test_f1': test_f1,
+                'test_far': test_bio_metrics['FAR'],
+                'test_frr': test_bio_metrics['FRR'],
+                'test_eer': test_bio_metrics['EER'],
+
+                # Model Details
                 'best_params': grid_search.best_params_,
-                'best_model': best_model  # Store the actual trained model
+                'best_model': best_model
             }
 
-            print(f"\nBest Parameters:")
+            # -----------------------------
+            # PRINT RESULTS
+            # -----------------------------
+            print("\nBest Parameters:")
             print(grid_search.best_params_)
 
-            print(f"\nTrain Accuracy: {train_acc:.4f}")
-            print(f"Test Accuracy : {test_acc:.4f}")
+            print("\nTRAIN METRICS")
+            print("-" * 30)
+            print(f"Accuracy : {train_acc:.4f}")
+            print(f"Precision: {train_precision:.4f}")
+            print(f"Recall   : {train_recall:.4f}")
+            print(f"F1 Score : {train_f1:.4f}")
+            print(f"FAR      : {train_bio_metrics['FAR']:.4f}")
+            print(f"FRR      : {train_bio_metrics['FRR']:.4f}")
+            print(f"EER      : {train_bio_metrics['EER']:.4f}")
 
-            print("\nClassification Report:")
-            print(
-                classification_report(
-                    y_test,
-                    y_pred_test,
-                    target_names=[f'Not {label}', label]
-                )
-            )
+            print("\nTEST METRICS")
+            print("-" * 30)
+            print(f"Accuracy : {test_acc:.4f}")
+            print(f"Precision: {test_precision:.4f}")
+            print(f"Recall   : {test_recall:.4f}")
+            print(f"F1 Score : {test_f1:.4f}")
+            print(f"FAR      : {test_bio_metrics['FAR']:.4f}")
+            print(f"FRR      : {test_bio_metrics['FRR']:.4f}")
+            print(f"EER      : {test_bio_metrics['EER']:.4f}")
+
+            # print("\nClassification Report:")
+            # print(
+            #     classification_report(
+            #         y_test,
+            #         y_pred_test,
+            #         target_names=[f'Not {label}', label]
+            #     )
+            # )
 
         except Exception as e:
 
@@ -325,7 +455,9 @@ def train_and_evaluate_models(
                 'error': str(e)
             }
 
-    # Select the best model
+    # ---------------------------------
+    # SELECT BEST MODEL
+    # ---------------------------------
     valid_results = {
         k: v for k, v in results.items()
         if 'error' not in v
@@ -340,12 +472,93 @@ def train_and_evaluate_models(
     )
 
     best_pipeline = best_result['best_model']
-    train_accuracy = best_result['train_accuracy']
-    test_accuracy = best_result['test_accuracy']
 
-    print(f"\nBest model for {label}: {best_model_name} with test accuracy {test_accuracy:.4f}")
+    print(f"\n{'=' * 60}")
+    print(f"BEST MODEL FOR {label}: {best_model_name}")
+    print(f"{'=' * 60}")
 
-    return best_pipeline, train_accuracy, test_accuracy
+    print(f"Test Accuracy : {best_result['test_accuracy']:.4f}")
+    print(f"Test Precision: {best_result['test_precision']:.4f}")
+    print(f"Test Recall   : {best_result['test_recall']:.4f}")
+    print(f"Test F1 Score : {best_result['test_f1']:.4f}")
+    print(f"Test FAR      : {best_result['test_far']:.4f}")
+    print(f"Test FRR      : {best_result['test_frr']:.4f}")
+    print(f"Test EER      : {best_result['test_eer']:.4f}")
+
+    return best_pipeline, results
+
+
+def calculate_metrics_statistics(all_metrics):
+    """
+    Calculate mean and standard deviation of metrics across all persons.
+
+    Args:
+        all_metrics: List of dictionaries containing metrics for each person
+
+    Returns:
+        Dictionary with mean and std for each metric
+    """
+    metrics_summary = {}
+
+    # Define all metrics to track
+    metric_keys = [
+        'train_accuracy', 'test_accuracy',
+        'train_Recall', 'test_Recall',
+        'train_precision', 'test_precision',
+        'train_f1', 'test_f1',
+        'train_FAR', 'test_FAR',
+        'train_FRR', 'test_FRR',
+        'train_EER', 'test_EER'
+    ]
+
+    for metric in metric_keys:
+        values = [m.get(metric) for m in all_metrics if m.get(metric) is not None]
+        if values:
+            metrics_summary[metric] = {
+                'mean': np.mean(values),
+                'std': np.std(values),
+                'values': values
+            }
+
+    return metrics_summary
+
+
+def display_metrics_statistics(metrics_summary):
+    """
+    Display metrics statistics in a formatted table.
+
+    Args:
+        metrics_summary: Dictionary with mean and std for each metric
+    """
+    print(f"{'Metric':<25} {'Mean':<12} {'Std Dev':<12}")
+    print("-" * 50)
+
+    # Group metrics by type
+    accuracy_metrics = ['train_accuracy', 'test_accuracy']
+    recall_metrics = ['train_Recall', 'test_Recall']
+    precision_metrics = ['train_precision', 'test_precision']
+    f1_metrics = ['train_f1', 'test_f1']
+    far_metrics = ['train_FAR', 'test_FAR']
+    frr_metrics = ['train_FRR', 'test_FRR']
+    eer_metrics = ['train_EER', 'test_EER']
+
+    groups = [
+        ("Accuracy", accuracy_metrics),
+        ("Recall", recall_metrics),
+        ("Precision", precision_metrics),
+        ("F1 Score", f1_metrics),
+        ("FAR", far_metrics),
+        ("FRR", frr_metrics),
+        ("EER", eer_metrics)
+    ]
+
+    for group_name, metrics in groups:
+        print(f"\n{group_name}:")
+        print("-" * 50)
+        for metric in metrics:
+            if metric in metrics_summary:
+                summary = metrics_summary[metric]
+                print(f"  {metric:<22} {summary['mean']:<12.6f} {summary['std']:<12.6f}")
 
 
 def run():
@@ -354,28 +567,58 @@ def run():
     trained_dir = BASE_DIR / "Trained_Models"
     trained_dir.mkdir(exist_ok=True)
 
+    # Store metrics for all persons
+    all_metrics = []
+
     for i, label in enumerate(unique_names, 1):
         try:
             print(f"\nTraining models for Person {i}: {label}")
 
             balanced_data = create_balanced_dataset(label, data)
             X_train, X_test, y_train, y_test = split_features_targets(balanced_data)
+            # Train and evaluate models. This returns the best pipeline and a
+            # results dictionary containing per-model train/test metrics and the model object.
+            best_pipeline, results = train_and_evaluate_models(
+                X_train, X_test, y_train, y_test, label
+            )
 
-            best_pipeline, train_accuracy, test_accuracy = train_and_evaluate_models(X_train, X_test, y_train, y_test, label)
-
-            # Save the best pipeline with accuracies
-            model_data = {
+            # Save only the best model as {label}.pkl
+            best_pkl = trained_dir / f"{label}.pkl"
+            best_info = results.get(max(results.keys(), key=lambda k: results[k].get('test_accuracy', -1)))
+            best_data = {
                 'model': best_pipeline,
-                'train_accuracy': train_accuracy,
-                'test_accuracy': test_accuracy
+                'train_accuracy': best_info.get('train_accuracy'),
+                'test_accuracy': best_info.get('test_accuracy'),
+                'train_Recall': best_info.get('train_recall'),
+                'test_Recall': best_info.get('test_recall'),
+                'train_precision': best_info.get('train_precision'),
+                'test_precision': best_info.get('test_precision'),
+                'train_f1': best_info.get('train_f1'),
+                'test_f1': best_info.get('test_f1'),
+                'train_FAR': best_info.get('train_far'),
+                'test_FAR': best_info.get('test_far'),
+                'train_FRR': best_info.get('train_frr'),
+                'test_FRR': best_info.get('test_frr'),
+                'train_EER': best_info.get('train_eer'),
+                'test_EER': best_info.get('test_eer')
             }
+            with open(best_pkl, 'wb') as f:
+                pickle.dump(best_data, f)
+            print(f"Saved best model for {label} as {best_pkl}")
 
-            pkl_path = trained_dir / f"{label}.pkl"
-            with open(pkl_path, 'wb') as f:
-                pickle.dump(model_data, f)
-            print(f"Saved best model for {label} to {pkl_path} (Train Acc: {train_accuracy:.4f}, Test Acc: {test_accuracy:.4f})")
+            # Store metrics for statistics calculation
+            all_metrics.append(best_data)
         except Exception as _:
             continue
+
+    # Display mean and standard deviation of all metrics
+    print(f"\n{'=' * 80}")
+    print(f"OVERALL STATISTICS (Mean ± Std Dev) - Across {len(all_metrics)} Persons")
+    print(f"{'=' * 80}\n")
+
+    if all_metrics:
+        metrics_summary = calculate_metrics_statistics(all_metrics)
+        display_metrics_statistics(metrics_summary)
 
 
 if __name__ == "__main__":

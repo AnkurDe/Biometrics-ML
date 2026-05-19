@@ -2,6 +2,6 @@
 
 source .venvLinux/bin/activate
 start=$(date +%s)
-python src/Models/Person_model_ModelOutput.py
+python src/Models/Person_model_saves.py
 end=$(date +%s)
 echo "Elapsed $(($end - $start)) seconds"
