@@ -55,7 +55,7 @@ import pickle
 from pathlib import Path
 
 # Load a saved model
-models_dir = Path("Trained_Models")
+models_dir = Path("../Trained_Models")
 pkl_path = models_dir / "John_Doe.pkl"
 
 with open(pkl_path, "rb") as f:
